@@ -1,0 +1,20 @@
+Thinkly Labs - Software Engineering role.
+
+What You're Building
+A chatbot. Pick any topic you find interesting a character, a product, a niche subject, anything and build a chatbot trained on that topic. The bot should feel purpose-built for that subject, not like a generic chat wrapper.
+The experience you design around it is the actual assignment.
+Requirements
+The Product
+Chatbot trained on a topic of your choice (you decide the knowledge base, the scope)
+The UI should reflect the topic and usability of the product; this is where your frontend thinking shows
+Functional, responsive, and deployed on Vercel or of your choice
+What "Frontend Thinking" Means Here
+How do you present the chatbot? What's the first thing a user sees?
+How does the conversation feel when loading states, error states, empty states?
+What small details did you add that show you thought about the user?
+AI Usage
+Use AI tools however you want, Cursor, v0, Claude, Copilot, all of it. The goal is to understand how well you can direct AI and make things work.
+What to Submit
+Deployed Vercel link must be live and working
+GitHub repo public, with a short README explaining what you built and why you picked the topic
+A short Loom (5–10 min) walk us through your coding session, we want to understand how you prompt, check code and ensure no ai slop.
