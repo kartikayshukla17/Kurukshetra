@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { pipeline } from "@huggingface/transformers";
 import { createClient } from "@supabase/supabase-js";
 import { CHUNKS } from "../src/lib/chunks";

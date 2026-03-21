@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Message, ApiError, ChatState } from "@/types/chat";
+import { Message, Conversation, ApiError, ChatState } from "@/types/chat";
 import { generateId } from "@/lib/utils";
 
-const STORAGE_KEY = "kurukshetra_messages";
+const CONVERSATIONS_KEY = "kurukshetra_conversations";
+const ACTIVE_KEY = "kurukshetra_active";
 
 function classifyError(status: number, retryAfter?: string): ApiError {
   if (status === 429) {
@@ -20,9 +21,27 @@ function classifyError(status: number, retryAfter?: string): ApiError {
   return { type: "unknown", message: "Unknown error" };
 }
 
+function makeTitle(content: string): string {
+  return content.length > 42 ? content.slice(0, 42).trimEnd() + "…" : content;
+}
+
+function saveConversations(convs: Conversation[]) {
+  try {
+    localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(convs));
+  } catch { /* ignore */ }
+}
+
+function saveActiveId(id: string | null) {
+  try {
+    if (id) localStorage.setItem(ACTIVE_KEY, id);
+    else localStorage.removeItem(ACTIVE_KEY);
+  } catch { /* ignore */ }
+}
+
 export function useChat() {
   const [state, setState] = useState<ChatState>({
-    messages: [],
+    conversations: [],
+    activeId: null,
     isStreaming: false,
     streamingContent: "",
     error: null,
@@ -31,35 +50,101 @@ export function useChat() {
   const abortRef = useRef<AbortController | null>(null);
   const lastUserMessageRef = useRef<string>("");
 
-  // Load persisted messages on mount
+  // Load persisted conversations on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(CONVERSATIONS_KEY);
+      const activeId = localStorage.getItem(ACTIVE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored) as Message[];
+        const parsed = JSON.parse(stored) as Conversation[];
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setState((s) => ({ ...s, messages: parsed }));
+          const id = activeId && parsed.find(c => c.id === activeId)
+            ? activeId
+            : parsed[0].id;
+          setState((s) => ({ ...s, conversations: parsed, activeId: id }));
+          return;
         }
       }
-    } catch {
-      // ignore parse errors
-    }
+    } catch { /* ignore */ }
   }, []);
 
-  // Persist messages on change
-  useEffect(() => {
-    if (state.messages.length === 0) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.messages));
-    } catch {
-      // ignore storage errors
-    }
-  }, [state.messages]);
+  // Derived: messages for the active conversation
+  const activeConversation = state.conversations.find(c => c.id === state.activeId) ?? null;
+  const messages = activeConversation?.messages ?? [];
+
+  const updateActiveMessages = useCallback((
+    id: string,
+    updater: (msgs: Message[]) => Message[]
+  ) => {
+    setState((s) => {
+      const updated = s.conversations.map((c) =>
+        c.id === id
+          ? { ...c, messages: updater(c.messages), updatedAt: Date.now() }
+          : c
+      );
+      saveConversations(updated);
+      return { ...s, conversations: updated };
+    });
+  }, []);
+
+  const newConversation = useCallback(() => {
+    const conv: Conversation = {
+      id: generateId(),
+      title: "New counsel",
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    setState((s) => {
+      const updated = [conv, ...s.conversations];
+      saveConversations(updated);
+      saveActiveId(conv.id);
+      return { ...s, conversations: updated, activeId: conv.id, error: null };
+    });
+  }, []);
+
+  const switchConversation = useCallback((id: string) => {
+    abortRef.current?.abort();
+    saveActiveId(id);
+    setState((s) => ({ ...s, activeId: id, isStreaming: false, streamingContent: "", error: null }));
+  }, []);
+
+  const deleteConversation = useCallback((id: string) => {
+    setState((s) => {
+      const updated = s.conversations.filter((c) => c.id !== id);
+      saveConversations(updated);
+      let nextId = s.activeId;
+      if (s.activeId === id) {
+        nextId = updated.length > 0 ? updated[0].id : null;
+        saveActiveId(nextId);
+      }
+      return { ...s, conversations: updated, activeId: nextId };
+    });
+  }, []);
 
   const sendMessage = useCallback(async (content: string) => {
     if (state.isStreaming) return;
 
     lastUserMessageRef.current = content;
+
+    // Create a new conversation if none is active
+    let currentId = state.activeId;
+    if (!currentId) {
+      const conv: Conversation = {
+        id: generateId(),
+        title: makeTitle(content),
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      setState((s) => {
+        const updated = [conv, ...s.conversations];
+        saveConversations(updated);
+        saveActiveId(conv.id);
+        return { ...s, conversations: updated, activeId: conv.id };
+      });
+      currentId = conv.id;
+    }
 
     const userMsg: Message = {
       id: generateId(),
@@ -68,7 +153,6 @@ export function useChat() {
       timestamp: Date.now(),
     };
 
-    // Optimistic: add user message and a placeholder assistant message
     const assistantId = generateId();
     const assistantMsg: Message = {
       id: assistantId,
@@ -77,20 +161,31 @@ export function useChat() {
       timestamp: Date.now(),
     };
 
-    setState((s) => ({
-      ...s,
-      messages: [...s.messages, userMsg, assistantMsg],
-      isStreaming: true,
-      streamingContent: "",
-      error: null,
-    }));
+    // Add user + placeholder assistant message, set conversation title on first message
+    setState((s) => {
+      const updated = s.conversations.map((c) => {
+        if (c.id !== currentId) return c;
+        const isFirst = c.messages.length === 0;
+        return {
+          ...c,
+          title: isFirst ? makeTitle(content) : c.title,
+          messages: [...c.messages, userMsg, assistantMsg],
+          updatedAt: Date.now(),
+        };
+      });
+      saveConversations(updated);
+      return { ...s, conversations: updated, isStreaming: true, streamingContent: "", error: null };
+    });
 
     const controller = new AbortController();
     abortRef.current = controller;
 
     try {
+      const currentMessages = state.conversations
+        .find(c => c.id === currentId)?.messages ?? [];
+
       const apiMessages = [
-        ...state.messages.map((m) => ({ role: m.role, content: m.content })),
+        ...currentMessages.map((m) => ({ role: m.role, content: m.content })),
         { role: "user" as const, content },
       ];
 
@@ -115,52 +210,36 @@ export function useChat() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
-
+        accumulated += decoder.decode(value, { stream: true });
         setState((s) => ({ ...s, streamingContent: accumulated }));
       }
 
-      // Flush streaming content into the placeholder message
-      setState((s) => ({
-        ...s,
-        isStreaming: false,
-        streamingContent: "",
-        messages: s.messages.map((m) =>
-          m.id === assistantId ? { ...m, content: accumulated } : m
-        ),
-      }));
+      updateActiveMessages(currentId!, (msgs) =>
+        msgs.map((m) => m.id === assistantId ? { ...m, content: accumulated } : m)
+      );
+      setState((s) => ({ ...s, isStreaming: false, streamingContent: "" }));
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        // User-cancelled: keep partial content if any
-        setState((s) => ({
-          ...s,
-          isStreaming: false,
-          messages: s.messages.map((m) =>
-            m.id === assistantId
-              ? { ...m, content: s.streamingContent || "[Stopped]" }
-              : m
-          ),
-          streamingContent: "",
-        }));
+        setState((s) => {
+          updateActiveMessages(currentId!, (msgs) =>
+            msgs.map((m) =>
+              m.id === assistantId ? { ...m, content: s.streamingContent || "[Stopped]" } : m
+            )
+          );
+          return { ...s, isStreaming: false, streamingContent: "" };
+        });
         return;
       }
 
-      // API error: remove the empty assistant placeholder, show error
       const apiError: ApiError =
         typeof err === "object" && err !== null && "type" in err
           ? (err as ApiError)
           : { type: "network", message: "Network error" };
 
-      setState((s) => ({
-        ...s,
-        isStreaming: false,
-        streamingContent: "",
-        messages: s.messages.filter((m) => m.id !== assistantId),
-        error: apiError,
-      }));
+      updateActiveMessages(currentId!, (msgs) => msgs.filter((m) => m.id !== assistantId));
+      setState((s) => ({ ...s, isStreaming: false, streamingContent: "", error: apiError }));
     }
-  }, [state.messages, state.isStreaming]);
+  }, [state.activeId, state.isStreaming, state.conversations, updateActiveMessages]);
 
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort();
@@ -179,25 +258,25 @@ export function useChat() {
 
   const clearConversation = useCallback(() => {
     abortRef.current?.abort();
-    setState({
-      messages: [],
-      isStreaming: false,
-      streamingContent: "",
-      error: null,
-    });
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-  }, []);
+    if (!state.activeId) return;
+    updateActiveMessages(state.activeId, () => []);
+    setState((s) => ({ ...s, isStreaming: false, streamingContent: "", error: null }));
+  }, [state.activeId, updateActiveMessages]);
 
   return {
-    ...state,
+    messages,
+    conversations: state.conversations,
+    activeId: state.activeId,
+    isStreaming: state.isStreaming,
+    streamingContent: state.streamingContent,
+    error: state.error,
     sendMessage,
     stopStreaming,
     retry,
     dismissError,
     clearConversation,
+    newConversation,
+    switchConversation,
+    deleteConversation,
   };
 }
