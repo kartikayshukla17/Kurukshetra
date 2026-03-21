@@ -7,14 +7,23 @@ export interface Message {
   timestamp: number;
 }
 
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface ApiError {
   type: "network" | "rate_limit" | "server" | "unknown";
   message: string;
-  retryAfter?: number; // seconds, for rate limit
+  retryAfter?: number;
 }
 
 export interface ChatState {
-  messages: Message[];
+  conversations: Conversation[];
+  activeId: string | null;
   isStreaming: boolean;
   streamingContent: string;
   error: ApiError | null;
@@ -26,4 +35,7 @@ export interface ChatActions {
   retry: () => void;
   dismissError: () => void;
   clearConversation: () => void;
+  newConversation: () => void;
+  switchConversation: (id: string) => void;
+  deleteConversation: (id: string) => void;
 }

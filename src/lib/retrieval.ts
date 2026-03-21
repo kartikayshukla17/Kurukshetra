@@ -1,7 +1,9 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { pipeline } from "@huggingface/transformers";
 import { createClient } from "@supabase/supabase-js";
 
-let embedder: Awaited<ReturnType<typeof pipeline>> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let embedder: any = null;
 
 async function getEmbedder() {
   if (!embedder) {
@@ -12,7 +14,8 @@ async function getEmbedder() {
 
 export async function embedText(text: string): Promise<number[]> {
   const embed = await getEmbedder();
-  const output = await embed(text, { pooling: "mean", normalize: true });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const output: any = await embed(text, { pooling: "mean", normalize: true });
   return Array.from(output.data as Float32Array);
 }
 

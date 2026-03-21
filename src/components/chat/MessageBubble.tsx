@@ -93,7 +93,7 @@ export default function MessageBubble({
         </div>
       </div>
 
-      <div className="group relative max-w-[85%] sm:max-w-[75%]">
+      <div className="group relative w-full">
         {/* "The Charioteer" label */}
         <div className="flex items-center gap-2 mb-1.5 ml-0.5">
           <span className="text-[#d4a843] ember-glow text-xs">◈</span>

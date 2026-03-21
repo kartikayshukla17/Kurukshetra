@@ -222,7 +222,8 @@ export function AnimatedAIChat({ onSend, onStop, isStreaming, disabled }: Animat
   const canSend = value.trim().length > 0 && !isStreaming && !disabled;
 
   return (
-    <div className="px-4 pb-4 pt-2 border-t border-[#2a2244] bg-[#0c0a14]/95 relative">
+    <div className="border-t border-[#2a2244] bg-[#0c0a14]/95 relative">
+      <div className="max-w-3xl mx-auto px-4 pb-4 pt-2">
       {/* Ambient gold glow that follows the cursor when the input is focused */}
       <AnimatePresence>
         {inputFocused && (
@@ -423,6 +424,7 @@ export function AnimatedAIChat({ onSend, onStop, isStreaming, disabled }: Animat
           } as React.CSSProperties}
         />
       ))}
+      </div>
     </div>
   );
 }

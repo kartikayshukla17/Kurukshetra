@@ -131,29 +131,31 @@ export default function MessageList({
 
       <div
         ref={containerRef}
-        className="h-full overflow-y-auto px-4 sm:px-6 py-6 space-y-6"
+        className="h-full overflow-y-auto"
       >
-        {messages.map((msg, i) => {
-          const isLast = i === messages.length - 1;
-          const showStreaming =
-            isStreaming && isLast && msg.role === "assistant";
-          return (
-            <div key={msg.id} data-msg={i}>
-              <MessageBubble
-                message={msg}
-                isStreaming={showStreaming}
-                streamingContent={showStreaming ? streamingContent : undefined}
-              />
-            </div>
-          );
-        })}
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+          {messages.map((msg, i) => {
+            const isLast = i === messages.length - 1;
+            const showStreaming =
+              isStreaming && isLast && msg.role === "assistant";
+            return (
+              <div key={msg.id} data-msg={i}>
+                <MessageBubble
+                  message={msg}
+                  isStreaming={showStreaming}
+                  streamingContent={showStreaming ? streamingContent : undefined}
+                />
+              </div>
+            );
+          })}
 
-        {/* Show typing indicator only when streaming with no content yet */}
-        {isStreaming && (!isLastAssistant || streamingContent === "") && (
-          <TypingIndicator />
-        )}
+          {/* Show typing indicator only when streaming with no content yet */}
+          {isStreaming && (!isLastAssistant || streamingContent === "") && (
+            <TypingIndicator />
+          )}
 
-        <div ref={bottomRef} aria-hidden />
+          <div ref={bottomRef} aria-hidden />
+        </div>
       </div>
 
       {/* Scroll to bottom button */}
