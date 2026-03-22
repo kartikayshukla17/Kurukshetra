@@ -9,7 +9,7 @@
     "seed": "tsx --env-file=.env.local scripts/seed.ts"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.8.1",
+    "@huggingface/inference": "^4.13.15",
     "@supabase/supabase-js": "^2.99.3",
     "clsx": "^2.1.1",
     "groq-sdk": "^1.1.1",

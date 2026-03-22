@@ -1,22 +1,15 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-import { pipeline } from "@huggingface/transformers";
+import { InferenceClient } from "@huggingface/inference";
 import { createClient } from "@supabase/supabase-js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let embedder: any = null;
-
-async function getEmbedder() {
-  if (!embedder) {
-    embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
-  }
-  return embedder;
-}
+const hf = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
 
 export async function embedText(text: string): Promise<number[]> {
-  const embed = await getEmbedder();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const output: any = await embed(text, { pooling: "mean", normalize: true });
-  return Array.from(output.data as Float32Array);
+  const output = await hf.featureExtraction({
+    model: "sentence-transformers/all-MiniLM-L6-v2",
+    inputs: text,
+  });
+  // output is number[] for a single input
+  return output as number[];
 }
 
 export async function retrieveContext(query: string, topK = 5): Promise<string> {
