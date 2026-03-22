@@ -407,8 +407,8 @@ export function AnimatedAIChat({ onSend, onStop, isStreaming, disabled }: Animat
         </div>
       </motion.div>
 
-      {/* Keyboard hint */}
-      <p className="mt-2 text-center type-label">↵ send · shift+↵ newline · / commands</p>
+      {/* Keyboard hint — hidden on touch devices */}
+      <p className="mt-2 text-center type-label hidden sm:block">↵ send · shift+↵ newline · / commands</p>
 
       {/* Saffron spark particles — fixed overlay, z-top */}
       {sparks.map((s) => (

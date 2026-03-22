@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Conversation } from "@/types/chat";
 
 interface Props {
@@ -28,8 +28,13 @@ export default function ConversationSidebar({
   onSwitch,
   onDelete,
 }: Props) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  // Open by default on desktop, closed on mobile
+  useEffect(() => {
+    if (window.innerWidth >= 768) setOpen(true);
+  }, []);
 
   return (
     <>
@@ -48,7 +53,13 @@ export default function ConversationSidebar({
 
       {/* Sidebar panel */}
       {open && (
-        <div className="flex flex-col w-64 shrink-0 bg-surface border-r border-border-dim animate-slide-in-left">
+        <>
+          {/* Mobile backdrop — tap to close */}
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            onClick={() => setOpen(false)}
+          />
+        <div className="fixed inset-y-0 left-0 z-50 w-72 md:static md:w-64 md:z-auto flex flex-col shrink-0 bg-surface border-r border-border-dim animate-slide-in-left">
           {/* Header */}
           <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-border-dim">
             <span className="font-mono text-overline text-gold-dim tracking-widest">
@@ -112,26 +123,25 @@ export default function ConversationSidebar({
                     </p>
                   </div>
 
-                  {/* Delete button */}
-                  {hoveredId === conv.id && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(conv.id);
-                      }}
-                      className="shrink-0 mt-0.5 text-parchment-muted hover:text-crimson transition-colors"
-                      aria-label="Delete conversation"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      </svg>
-                    </button>
-                  )}
+                  {/* Delete button — always visible on touch, row-hover on desktop */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(conv.id);
+                    }}
+                    className="shrink-0 mt-0.5 text-parchment-muted md:text-transparent md:group-hover:text-parchment-muted hover:!text-crimson transition-colors"
+                    aria-label="Delete conversation"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
                 </div>
               );
             })}
           </div>
         </div>
+        </>
       )}
     </>
   );
