@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Search, Bookmark, Share2, Plus } from "lucide-react";
+import { Search, Share2, Check, Plus } from "lucide-react";
 import BhishmaLogo from "@/components/ui/BhishmaLogo";
 import { cn } from "@/lib/utils";
 import { useLenis } from "lenis/react";
@@ -27,6 +27,19 @@ function shouldSearch(query: string): boolean {
 
 // ─── Verse Card ────────────────────────────────────────────────────────────
 function VerseCard({ verse }: { verse: Verse }) {
+  const [shared, setShared] = useState(false);
+
+  const handleShare = async () => {
+    const text = `"${verse.quote}" — Bhagavad Gita ${verse.id}`;
+    if (navigator.share) {
+      await navigator.share({ title: `Gita ${verse.id} · ${verse.tag}`, text });
+    } else {
+      await navigator.clipboard.writeText(text);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
+
   return (
     <article
       className={cn(
@@ -49,9 +62,6 @@ function VerseCard({ verse }: { verse: Verse }) {
             {verse.tag}
           </span>
         </div>
-        <button className="metallic-action text-[#5a5066] group-hover:text-[#d4a843] transition-colors" aria-label="Bookmark verse">
-          <Bookmark size={16} />
-        </button>
       </div>
 
       <blockquote
@@ -66,8 +76,13 @@ function VerseCard({ verse }: { verse: Verse }) {
           <span className="type-overline" style={{ color: "#5a5066" }}>Sanctuary Entry</span>
           <span className="type-body-sm italic" style={{ color: "#9b8e7a" }}>{verse.context}</span>
         </div>
-        <button className="metallic-action text-[#5a5066] hover:text-[#d4a843] transition-colors" aria-label="Share verse">
-          <Share2 size={14} />
+        <button
+          onClick={handleShare}
+          className="metallic-action transition-colors"
+          style={{ color: shared ? "#1e9e8e" : "#5a5066" }}
+          aria-label="Share verse"
+        >
+          {shared ? <Check size={14} /> : <Share2 size={14} />}
         </button>
       </div>
     </article>
