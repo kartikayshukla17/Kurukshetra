@@ -5,10 +5,10 @@ import { X, RefreshCw } from "lucide-react";
 import { ApiError } from "@/types/chat";
 
 const ERROR_MESSAGES: Record<ApiError["type"], string> = {
-  network: "The path to Dwarka is blocked. Check your connection.",
-  rate_limit: "The oracle needs a moment to rest.",
-  server: "An unknown force intervenes. Retry, or ask differently.",
-  unknown: "Something interrupted the sage. Please try again.",
+  network: "No internet connection. Check your network and try again.",
+  rate_limit: "Too many requests — please wait before trying again.",
+  server: "Something went wrong on our end. Please try again.",
+  unknown: "Something went wrong. Please try again.",
 };
 
 interface ErrorBannerProps {
@@ -47,8 +47,10 @@ export default function ErrorBanner({
     return () => clearInterval(interval);
   }, [error.retryAfter]);
 
-  // Auto-dismiss after 10s (unless rate-limit with countdown)
+  // Auto-dismiss after 10s for server/unknown errors only.
+  // Network errors stay until the user acts (retries or dismisses).
   useEffect(() => {
+    if (error.type === "network") return;
     if (error.type === "rate_limit" && countdown > 0) return;
     const t = setTimeout(onDismiss, 10000);
     return () => clearTimeout(t);

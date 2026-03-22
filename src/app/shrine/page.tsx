@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, Bookmark, Share2, Plus } from "lucide-react";
 import BhishmaLogo from "@/components/ui/BhishmaLogo";
 import { cn } from "@/lib/utils";
+import { useLenis } from "lenis/react";
 
 interface Verse {
   id: string;
@@ -29,7 +30,7 @@ function VerseCard({ verse }: { verse: Verse }) {
   return (
     <article
       className={cn(
-        "relic-card group flex flex-col p-8 min-h-[320px]",
+        "relic-card group flex flex-col p-4 sm:p-6 md:p-8 min-h-[240px] sm:min-h-[280px] md:min-h-[320px]",
         "transition-all duration-700",
         "border border-[#2a2244] hover:shadow-[0px_0px_30px_rgba(212,168,67,0.08)] hover:border-[#4a3f7a]",
       )}
@@ -79,20 +80,32 @@ export default function ShrinePage() {
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [verses, setVerses] = useState<Verse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function fetchVerses(q?: string) {
     setLoading(true);
+    setFetchError(false);
     try {
       const url = q ? `/api/verses?q=${encodeURIComponent(q)}` : "/api/verses";
       const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch");
       const data: Verse[] = await res.json();
-      // Client-side filter by active tag
       setVerses(data);
+    } catch {
+      setFetchError(true);
+      setVerses([]);
     } finally {
       setLoading(false);
     }
   }
+
+  const lenis = useLenis();
+
+  // Re-measure scroll height after verses load (dynamic content changes page height)
+  useEffect(() => {
+    lenis?.resize();
+  }, [verses, lenis]);
 
   // Load defaults on mount
   useEffect(() => {
@@ -153,7 +166,12 @@ export default function ShrinePage() {
         </Link>
         <nav className="flex items-center gap-5">
           <Link href="/chat" className="type-overline transition-colors duration-200 hover:text-[#d4a843]" style={{ color: "#5a5066" }}>Sabha</Link>
-          <span className="type-overline ember-glow" style={{ color: "#d4a843" }}>Shrine</span>
+          <span
+            className="type-overline ember-glow relative"
+            style={{ color: "#d4a843", paddingBottom: "3px", borderBottom: "1px solid rgba(212,168,67,0.6)" }}
+          >
+            Shrine
+          </span>
         </nav>
       </header>
 
@@ -218,9 +236,24 @@ export default function ShrinePage() {
             : filtered.map((verse) => <VerseCard key={verse.id} verse={verse} />)
           }
 
-          {!loading && filtered.length === 0 && (
+          {!loading && fetchError && (
+            <div className="col-span-3 flex flex-col items-center gap-3 py-12">
+              <span className="text-[#e8652a] text-2xl" aria-hidden>⚠</span>
+              <p className="type-body text-center" style={{ color: "#9b8e7a" }}>
+                Could not load verses — check your connection.
+              </p>
+              <button
+                onClick={() => fetchVerses(query || undefined)}
+                className="type-overline px-4 py-2 border border-[#e8652a]/40 text-[#e8652a] hover:border-[#e8652a] transition-colors duration-200"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {!loading && !fetchError && filtered.length === 0 && (
             <p className="col-span-3 text-center type-body italic" style={{ color: "#5a5066" }}>
-              No verses found. The scrolls are silent on this matter.
+              No verses found for that search.
             </p>
           )}
 
