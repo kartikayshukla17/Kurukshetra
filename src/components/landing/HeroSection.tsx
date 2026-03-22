@@ -64,8 +64,6 @@ export default function HeroSection() {
   const scrollLogoDrift =  scrollY * 0.04;  // logo sinks slightly into scroll
   // Velocity-driven glow — higher speed = brighter ambient light
   const velGlowBoost   = Math.min(Math.abs(scrollVel) * 0.025, 0.18);
-  // Scroll indicator fades once user starts scrolling
-  const scrollHintOpacity = Math.max(0, 1 - scrollY / 60);
 
   return (
     <main
@@ -289,34 +287,6 @@ export default function HeroSection() {
           ))}
         </div>
 
-      </div>
-      {/* Scroll-down indicator — fades as soon as user begins scrolling */}
-      <div
-        aria-hidden
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 pointer-events-none"
-        style={{ opacity: scrollHintOpacity, transition: "opacity 0.3s ease-out" }}
-      >
-        <span
-          className="font-mono text-[#8a6a20] tracking-[0.25em] uppercase"
-          style={{ fontSize: "0.6rem" }}
-        >
-          scroll
-        </span>
-        <svg
-          width="12"
-          height="8"
-          viewBox="0 0 12 8"
-          fill="none"
-          className="animate-bounce"
-        >
-          <path
-            d="M1 1L6 6.5L11 1"
-            stroke="#8a6a20"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
       </div>
     </main>
   );
