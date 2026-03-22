@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import BhishmaLogo from "@/components/ui/BhishmaLogo";
 
@@ -10,6 +11,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onClear, hasMessages }: HeaderProps) {
+  const pathname = usePathname();
   return (
     <header
       className={cn(
@@ -48,20 +50,27 @@ export default function Header({ onClear, hasMessages }: HeaderProps) {
       <div className="flex items-center gap-5">
         {/* Nav links */}
         <nav className="hidden sm:flex items-center gap-5">
-          <Link
-            href="/chat"
-            className="type-overline transition-colors duration-200 hover:text-[#d4a843]"
-            style={{ color: "#5a5066" }}
-          >
-            Sabha
-          </Link>
-          <Link
-            href="/shrine"
-            className="type-overline transition-colors duration-200 hover:text-[#d4a843]"
-            style={{ color: "#5a5066" }}
-          >
-            Shrine
-          </Link>
+          {[{ href: "/chat", label: "Sabha" }, { href: "/shrine", label: "Shrine" }].map(({ href, label }) => {
+            const active = pathname === href;
+            return active ? (
+              <span
+                key={href}
+                className="type-overline ember-glow relative"
+                style={{ color: "#d4a843", paddingBottom: "3px", borderBottom: "1px solid rgba(212,168,67,0.6)" }}
+              >
+                {label}
+              </span>
+            ) : (
+              <Link
+                key={href}
+                href={href}
+                className="type-overline transition-colors duration-200 hover:text-[#d4a843]"
+                style={{ color: "#5a5066" }}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </nav>
 
         {hasMessages && onClear && (
