@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import BhishmaLogo from "@/components/ui/BhishmaLogo";
+import { useLenis } from "lenis/react";
 
 const FEATURES = [
   {
@@ -26,6 +27,8 @@ export default function HeroSection() {
   const heroRef = useRef<HTMLElement>(null);
   // Normalised offset: -1…+1 relative to section centre
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [scrollY, setScrollY] = useState(0);
+  const [scrollVel, setScrollVel] = useState(0);
 
   useEffect(() => {
     const el = heroRef.current;
@@ -41,7 +44,13 @@ export default function HeroSection() {
     return () => el.removeEventListener("mousemove", handler);
   }, []);
 
-  // Parallax magnitude (px)
+  // Track Lenis scroll position and velocity
+  useLenis(({ scroll, velocity }) => {
+    setScrollY(scroll);
+    setScrollVel(velocity);
+  });
+
+  // Mouse parallax magnitude (px)
   const logoX  =  offset.x *  6;
   const logoY  =  offset.y *  4;
   const bgX    = -offset.x *  3;
@@ -49,6 +58,14 @@ export default function HeroSection() {
   // Specular glint position (% within the logo box)
   const glintX =  offset.x * 30;
   const glintY =  offset.y * 30;
+
+  // Scroll-driven parallax — layered on top of mouse parallax
+  const scrollBgDrift  = -scrollY * 0.07;   // background floats up as page scrolls
+  const scrollLogoDrift =  scrollY * 0.04;  // logo sinks slightly into scroll
+  // Velocity-driven glow — higher speed = brighter ambient light
+  const velGlowBoost   = Math.min(Math.abs(scrollVel) * 0.025, 0.18);
+  // Scroll indicator fades once user starts scrolling
+  const scrollHintOpacity = Math.max(0, 1 - scrollY / 60);
 
   return (
     <main
@@ -58,20 +75,24 @@ export default function HeroSection() {
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 overflow-hidden"
-        style={{ transform: `translate(${bgX}px, ${bgY}px)`, transition: "transform 0.15s ease-out" }}
+        style={{ transform: `translate(${bgX}px, ${bgY + scrollBgDrift}px)`, transition: "transform 0.15s ease-out" }}
       >
         <div
-          className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full opacity-20"
+          className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full"
           style={{
+            opacity: 0.20 + velGlowBoost,
             background: "radial-gradient(ellipse, rgba(212,168,67,0.15) 0%, transparent 70%)",
             filter: "blur(40px)",
+            transition: "opacity 0.35s ease-out",
           }}
         />
         <div
-          className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full opacity-10"
+          className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full"
           style={{
+            opacity: 0.10 + velGlowBoost * 0.5,
             background: "radial-gradient(ellipse, rgba(30,158,142,0.2) 0%, transparent 70%)",
             filter: "blur(60px)",
+            transition: "opacity 0.35s ease-out",
           }}
         />
       </div>
@@ -115,7 +136,7 @@ export default function HeroSection() {
           style={{
             animationDelay: "0ms",
             filter: "drop-shadow(0 0 12px rgba(212,168,67,0.3))",
-            transform: `translate(${logoX}px, ${logoY}px)`,
+            transform: `translate(${logoX}px, ${logoY + scrollLogoDrift}px)`,
             transition: "transform 0.12s ease-out",
           }}
         >
@@ -244,7 +265,7 @@ export default function HeroSection() {
           {FEATURES.map((f) => (
             <div
               key={f.title}
-              className="grain-surface group flex flex-col items-center gap-2 p-5 border border-[#2a2244] bg-[#16132a]/60 rounded transition-all duration-300 hover:border-[#4a3f7a] hover:bg-[#1e1a38]/80"
+              className="relic-card group flex flex-col items-center gap-2 p-5 border border-[#2a2244] transition-all duration-300 hover:border-[#4a3f7a]"
             >
               <span
                 className="text-[#d4a843]/60 group-hover:text-[#d4a843] transition-colors duration-300 text-lg"
@@ -268,16 +289,34 @@ export default function HeroSection() {
           ))}
         </div>
 
-        {/* Footer note */}
-        <p
-          className="stagger-item opacity-0 mt-12 text-[#5a5066] text-xs tracking-wide"
-          style={{
-            fontFamily: "'DM Mono', monospace",
-            animationDelay: "640ms",
-          }}
+      </div>
+      {/* Scroll-down indicator — fades as soon as user begins scrolling */}
+      <div
+        aria-hidden
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 pointer-events-none"
+        style={{ opacity: scrollHintOpacity, transition: "opacity 0.3s ease-out" }}
+      >
+        <span
+          className="font-mono text-[#8a6a20] tracking-[0.25em] uppercase"
+          style={{ fontSize: "0.6rem" }}
         >
-          Powered by the Anthropic Claude API · Built for Thinkly Labs
-        </p>
+          scroll
+        </span>
+        <svg
+          width="12"
+          height="8"
+          viewBox="0 0 12 8"
+          fill="none"
+          className="animate-bounce"
+        >
+          <path
+            d="M1 1L6 6.5L11 1"
+            stroke="#8a6a20"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
     </main>
   );
