@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Kurukshetra — Ask the Mahabharata",
   description:
     "A conversational oracle for the Mahabharata. Ask about dharma, characters, the Bhagavad Gita, and the great war of Kurukshetra.",
+  icons: {
+    icon: "/favicon.svg",
+  },
   openGraph: {
     title: "Kurukshetra — Ask the Mahabharata",
     description:
